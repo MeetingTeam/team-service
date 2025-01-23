@@ -21,4 +21,10 @@ public class TeamMember {
 
 	@Enumerated(EnumType.STRING)
 	private TeamRole role;
+
+	public TeamMember(Team team, String userId, TeamRole role) {
+		this.team = team;
+		this.userId = userId;
+		this.role = role;
+	}
 }
