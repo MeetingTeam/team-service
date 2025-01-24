@@ -18,6 +18,7 @@ import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.services.FileService;
 import meetingteam.teamservice.services.TeamService;
 import meetingteam.teamservice.services.UserService;
+import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,10 @@ public class TeamServiceImpl implements TeamService {
 
     @Transactional
     public ResTeamDto createTeam(CreateTeamDto teamDto) {
-        String leaderId= AuthUtil.getUserId();
+        if(teamDto.getMemberIds().isEmpty())
+            throw new BadRequestException("You must add at least one member");
 
+        String leaderId= AuthUtil.getUserId();
         Team team=modelMapper.map(teamDto, Team.class);
         team.setAutoAddMember(false);
 
@@ -61,14 +64,22 @@ public class TeamServiceImpl implements TeamService {
         return teamConverter.toDto(savedTeam);
     }
 
-    public void updateTeam(UpdateTeamDto teamDto) {
+    public String updateTeam(UpdateTeamDto teamDto) {
         var team= teamRepo.findById(teamDto.getId())
                 .orElseThrow(()->new BadRequestException("Team not found"));
-        team.setTeamName(teamDto.getTeamName());
-        team.setAutoAddMember(teamDto.getAutoAddMember());
 
+        TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
+                AuthUtil.getUserId(), team.getId());
+        TeamRoleUtil.allowLEADERandDEPUTYRole(role);
+
+        if(teamDto.getTeamName()!=null)
+            team.setTeamName(teamDto.getTeamName());
+        if(teamDto.getAutoAddMember()!=null)
+            team.setAutoAddMember(teamDto.getAutoAddMember());
+
+        String preSignedUrl=null;
         if(teamDto.getIconFilename()!=null){
-            var preSignedUrl=fileService.generatePreSignedUrl(
+            preSignedUrl=fileService.generatePreSignedUrl(
                     "teams/"+teamDto.getId(),
                     teamDto.getIconFilename(),
                     team.getUrlIcon());
@@ -76,29 +87,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         teamRepo.save(team);
-    }
-
-    @Transactional
-    public void addFriendsToTeam(List<String> friendIds, String teamId) {
-        String userId= AuthUtil.getUserId();
-        if(!teamMemberRepo.existsByTeamAndUserId(teamRepo.getById(teamId), userId))
-            throw new AccessDeniedException("You do not have permissions to add new members to this team");
-
-        var members=new ArrayList<TeamMember>();
-        for(String friendId: friendIds) {
-            TeamMember tm=teamMemberRepo.findByTeamIdAndUserId(teamId, friendId);
-            if(tm==null) tm=new TeamMember(teamRepo.getById(teamId),friendId, TeamRole.MEMBER);
-            else if(tm.getRole()==TeamRole.LEAVE) tm.setRole(TeamRole.LEAVE);
-            members.add(tm);
-        }
-
-//        List<TeamMember> savedTMs=teamMemberRepo.saveAll(members);
-//        socketTemplate.sendTeam(teamId,"/updateMembers",tmConverter.convertToDTO(savedTMs));
-//        Team team=teamRepo.getTeamWithMembers(teamId);
-//        team=teamRepo.getTeamWithChannels(teamId);
-//        for(String friendId: friendIds)
-//            socketTemplate.sendUser(friendId,"/addTeam",
-//                    teamConverter.convertTeamToDTO(team,team.getMembers(),team.getChannels()));
+        return preSignedUrl;
     }
 
     public List<ResTeamDto> getJoinedTeams(){
@@ -107,24 +96,4 @@ public class TeamServiceImpl implements TeamService {
         List<Team> teams=teamRepo.getTeamsWithChannels(teamIds);
         return teamConverter.toDtos(teams);
     }
-
-//    public void leaveTeam(String teamId) {
-//        String userId=infoChecking.getUserIdFromContext();
-//        TeamMember tm=teamMemberRepo.findByTeamIdAndUserId(teamId, userId);
-//        tm.setRole("LEAVE");
-//        teamMemberRepo.save(tm);
-//        socketTemplate.sendTeam(teamId,"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
-//    }
-//    public void kickMember(String teamId, String memberId) {
-//        User u=infoChecking.getUserFromContext();
-//        String role=teamMemberRepo.getRoleByUserIdAndTeamId(u.getId(), teamId);
-//        TeamMember tm=teamMemberRepo.findByTeamIdAndUserId(teamId,memberId);
-//        if(role.equals("LEADER")) {
-//            tm.setRole("LEAVE");
-//            teamMemberRepo.save(tm);
-//            socketTemplate.sendUser(memberId,"/deleteTeam",teamId);
-//            socketTemplate.sendTeam(teamId,"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
-//        }
-//        else throw new RequestException("You do not have permission to kick a member!Contact leader or deputies of your team for help!");
-//    }
 }

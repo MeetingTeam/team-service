@@ -1,17 +1,15 @@
-package meetingteam.teamservice.dtos.Team;
+package meetingteam.teamservice.dtos.Channel;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.hibernate.validator.constraints.UUID;
 
 @Data
-public class UpdateTeamDto{
+public class UpdateChannelDto {
     @NotBlank @UUID
     private String id;
 
-    private String teamName;
+    private String channelName;
 
-    private String iconFilename;
-
-    private Boolean autoAddMember;
+    private String description;
 }

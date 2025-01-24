@@ -2,7 +2,6 @@ package meetingteam.teamservice.dtos.Team;
 
 import lombok.Data;
 import meetingteam.teamservice.dtos.Channel.ResChannelDto;
-import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
 
 import java.util.List;
 

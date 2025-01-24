@@ -30,9 +30,8 @@ public class SecurityConfig {
                 .csrf(csrf->csrf.disable())
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests((requests) -> requests
-//                        .requestMatchers("swagger-ui/**", "/v3/api-docs/**",
-//                                "**/private/**").permitAll()
-                        .anyRequest().permitAll()
+                        .requestMatchers("swagger-ui/**", "/v3/api-docs/**", "**/private/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 

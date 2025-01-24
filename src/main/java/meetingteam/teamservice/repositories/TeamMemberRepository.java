@@ -2,6 +2,7 @@ package meetingteam.teamservice.repositories;
 
 import meetingteam.teamservice.models.Team;
 import meetingteam.teamservice.models.TeamMember;
+import meetingteam.teamservice.models.enums.TeamRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,8 +19,10 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember,String> {
 	TeamMember findByTeamIdAndUserId(String teamId, String userId);
 
 	@Query("select tm.userId from TeamMember tm where tm.team.id=?1")
-	List<String> findUsersByTeamId(String teamId);
+	List<String> findUserIdsByTeamId(String teamId);
 	
 	@Query("select tm.role from TeamMember tm where tm.userId=?1 and tm.team.id=?2")
-	String getRoleByUserIdAndTeamId(String userId, String teamId);
+	TeamRole getRoleByUserIdAndTeamId(String userId, String teamId);
+
+	List<TeamMember> findByTeam(Team team);
 }

@@ -15,11 +15,6 @@ public interface TeamRepository extends JpaRepository<Team, String> {
     List<String> getTeamIdsByUserId(String userId);
 
     @Query("select team from Team team "
-            + "left join fetch team.members "
-            + "where team.id in :teamIds")
-    List<Team> getTeamsWithMembers(@Param("teamIds") List<String> teamIds);
-
-    @Query("select team from Team team "
             + "left join fetch team.channels "
             + "where team in :teamIds")
     List<Team> getTeamsWithChannels(@Param("teamIds") List<String> teamIds);

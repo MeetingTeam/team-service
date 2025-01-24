@@ -4,7 +4,10 @@ import meetingteam.teamservice.dtos.Team.CreateTeamDto;
 import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.Team.UpdateTeamDto;
 
+import java.util.List;
+
 public interface TeamService {
     ResTeamDto createTeam(CreateTeamDto teamDto);
-    void updateTeam(UpdateTeamDto teamDto);
+    String updateTeam(UpdateTeamDto teamDto);
+    List<ResTeamDto> getJoinedTeams();
 }
