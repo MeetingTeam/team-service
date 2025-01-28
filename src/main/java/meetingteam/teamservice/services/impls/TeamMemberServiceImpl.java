@@ -97,7 +97,8 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 
     public List<ResTeamMemberDto> getMembersOfTeam(String teamId) {
         var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
-        List<ResUserDto> userDtos=userService.getUsersByIds(members);
+        var userIds=members.stream().map(member->member.getUserId()).toList();
+        List<ResUserDto> userDtos=userService.getUsersByIds(userIds);
 
         var userDtosMap= new HashMap<String,ResUserDto>();
         userDtos.forEach(userDto->userDtosMap.put(userDto.getId(), userDto));
@@ -111,5 +112,9 @@ public class TeamMemberServiceImpl implements TeamMemberService {
             resMemberDtos.add(resMemberDto);
         }
         return resMemberDtos;
+    }
+
+    public boolean isMemberOfTeam(String userId, String channelId){
+        return teamMemberRepo.existsByUserIdAndChannelId(userId, channelId)>0;
     }
 }

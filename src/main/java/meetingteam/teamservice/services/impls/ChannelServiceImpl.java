@@ -31,7 +31,7 @@ public class ChannelServiceImpl implements ChannelService {
     public ResChannelDto createChannel(CreateChannelDto channelDto) {
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), channelDto.getTeamId());
-        TeamRoleUtil.allowLEADERandDEPUTYRole(role);
+        TeamRoleUtil.checkLEADERRole(role);
 
         var channel= modelMapper.map(channelDto, Channel.class);
         channel.setTeam(teamRepo.getById(channelDto.getTeamId()));
@@ -46,7 +46,7 @@ public class ChannelServiceImpl implements ChannelService {
 
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), channel.getTeam().getId());
-        TeamRoleUtil.allowLEADERandDEPUTYRole(role);
+        TeamRoleUtil.checkLEADERRole(role);
 
         if(channelDto.getChannelName()!=null)
             channel.setChannelName(channelDto.getChannelName());
@@ -60,7 +60,7 @@ public class ChannelServiceImpl implements ChannelService {
                 .orElseThrow(()-> new BadRequestException("Channel not found"));
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), channel.getTeam().getId());
-        TeamRoleUtil.allowLEADERRole(role);
+        TeamRoleUtil.checkLEADERRole(role);
 
         if(channel.getType()== ChannelType.VIDEOCALL_CHANNEL) {
             // delete Meetings

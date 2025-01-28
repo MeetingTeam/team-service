@@ -1,6 +1,6 @@
 package meetingteam.teamservice;
 
-import meetingteam.commonlibrary.configs.ServiceUrlConfig;
+import meetingteam.teamservice.configs.ServiceUrlConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -14,14 +14,9 @@ public interface TeamRepository extends JpaRepository<Team, String> {
     @Query("select tm.team.id from TeamMember tm where tm.userId=?1 and tm.role!=meetingteam.teamservice.models.enums.TeamRole.LEAVE")
     List<String> getTeamIdsByUserId(String userId);
 
-    @Query("select team from Team team "
-            + "left join fetch team.channels "
-            + "where team in :teamIds")
+    @Query("select team from Team team left join fetch team.channels where team in :teamIds")
     List<Team> getTeamsWithChannels(@Param("teamIds") List<String> teamIds);
 
-    @Query("select team from Team team left join fetch team.channels where team.id=?1")
-    Team getTeamWithChannels(String teamId);
-
-    @Query("select team from Team team left join fetch team.members where team.id=?1")
-    Team getTeamWithMembers(String teamId);
+    @Query("select team from Team team left join fetch team.channels where team=?1")
+    Team getTeamWithChannels(Team team);
 }

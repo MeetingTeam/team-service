@@ -46,4 +46,11 @@ public class TeamMemberController {
     ){
         return ResponseEntity.ok(teamMemberService.getMembersOfTeam(teamId));
     }
+
+    @GetMapping("/private/is-member-of-team")
+    public ResponseEntity<Boolean> isMemberOfTeam(
+            @RequestParam("userId") String userId,
+            @RequestParam("channelId") String channelId){
+        return ResponseEntity.ok(teamMemberService.isMemberOfTeam(userId, channelId));
+    }
 }

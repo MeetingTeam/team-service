@@ -70,7 +70,7 @@ public class TeamServiceImpl implements TeamService {
 
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), team.getId());
-        TeamRoleUtil.allowLEADERandDEPUTYRole(role);
+        TeamRoleUtil.checkLEADERRole(role);
 
         if(teamDto.getTeamName()!=null)
             team.setTeamName(teamDto.getTeamName());
@@ -80,7 +80,6 @@ public class TeamServiceImpl implements TeamService {
         String preSignedUrl=null;
         if(teamDto.getIconFilename()!=null){
             preSignedUrl=fileService.generatePreSignedUrl(
-                    "teams/"+teamDto.getId(),
                     teamDto.getIconFilename(),
                     team.getUrlIcon());
             team.setUrlIcon(preSignedUrl.split("\\?")[0]);

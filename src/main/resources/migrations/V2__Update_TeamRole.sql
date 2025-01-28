@@ -1,0 +1,1 @@
+alter table team_member modify column role enum('LEADER','LEAVE','MEMBER');

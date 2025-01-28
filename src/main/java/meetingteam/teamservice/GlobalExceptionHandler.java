@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.BindException;
@@ -26,7 +27,7 @@ import java.util.Set;
 public class GlobalExceptionHandler {
     private final Logger LOGGER= LoggerFactory.getLogger(Exception.class);
 
-    @ExceptionHandler(BadRequestException.class)
+    @ExceptionHandler({BadRequestException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ErrorDto> handleBadRequestException(Exception ex){
         LOGGER.error(ex.getMessage());
         var errorDto=new ErrorDto(HttpStatus.BAD_REQUEST,"Bad request", ex.getMessage());

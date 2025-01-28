@@ -10,10 +10,10 @@ import java.util.List;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember,String> {
 	boolean existsByTeamAndUserId(Team team, String userId);
-	
+
 	@Query("select count(tm) from TeamMember tm where tm.userId=?1 and "
 			+ "tm.team.id in (select c.team.id from Channel c where c.id=?2)")
-	int existsByChannelIdAndU(String userId, String channelId);
+	int existsByUserIdAndChannelId(String userId, String channelId);
 	
 	@Query("select tm from TeamMember tm where tm.team.id=?1 and tm.userId=?2")
 	TeamMember findByTeamIdAndUserId(String teamId, String userId);
