@@ -2,7 +2,6 @@ package meetingteam.teamservice;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import lombok.extern.slf4j.Slf4j;
 import meetingteam.commonlibrary.dtos.ErrorDto;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
 import org.slf4j.Logger;
@@ -23,7 +22,6 @@ import java.util.Set;
 
 
 @RestControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
     private final Logger LOGGER= LoggerFactory.getLogger(Exception.class);
 

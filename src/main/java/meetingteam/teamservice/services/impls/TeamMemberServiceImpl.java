@@ -4,12 +4,16 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
 import meetingteam.commonlibrary.utils.AuthUtil;
+import meetingteam.teamservice.contraints.WebsocketTopics;
+import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
 import meetingteam.teamservice.dtos.User.ResUserDto;
+import meetingteam.teamservice.models.Team;
 import meetingteam.teamservice.models.TeamMember;
 import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
+import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamMemberService;
 import meetingteam.teamservice.services.UserService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
@@ -27,6 +31,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
     private final UserService userService;
+    private final RabbitmqService rabbitmqService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -44,13 +49,17 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         }
         teamMemberRepo.saveAll(members);
 
-//        List<TeamMember> savedTMs=teamMemberRepo.saveAll(members);
-//        socketTemplate.sendTeam(teamId,"/updateMembers",tmConverter.convertToDTO(savedTMs));
-//        Team team=teamRepo.getTeamWithMembers(teamId);
-//        team=teamRepo.getTeamWithChannels(teamId);
-//        for(String friendId: friendIds)
-//            socketTemplate.sendUser(friendId,"/addTeam",
-//                    teamConverter.convertTeamToDTO(team,team.getMembers(),team.getChannels()));
+        List<TeamMember> savedMembers=teamMemberRepo.saveAll(members);
+        List<ResTeamMemberDto> memberDtos= savedMembers.stream()
+                        .map(member->modelMapper.map(member, ResTeamMemberDto.class))
+                        .toList();
+        rabbitmqService.sendToTeam(teamId, WebsocketTopics.AddTeamMembers, memberDtos);
+
+        Team team=teamRepo.getTeamWithChannels(teamRepo.getById(teamId));
+        var teamDto= modelMapper.map(team, ResTeamDto.class);
+        for(String friendId: friendIds){
+            rabbitmqService.sendToUser(friendId, WebsocketTopics.AddOrUpdateTeam, teamDto);
+        }
     }
 
     @Transactional
@@ -79,7 +88,8 @@ public class TeamMemberServiceImpl implements TeamMemberService {
             tm.setRole(TeamRole.LEAVE);
             teamMemberRepo.save(tm);
         }
-        //socketTemplate.sendTeam(teamId,"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
+
+        rabbitmqService.sendToTeam(teamId, WebsocketTopics.DeleteMember, tm.getId());
     }
 
     public void kickMember(String teamId, String memberId) {
@@ -91,8 +101,9 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         TeamMember kickedMember=teamMemberRepo.findByTeamIdAndUserId(teamId,memberId);
         kickedMember.setRole(TeamRole.LEAVE);
         teamMemberRepo.save(kickedMember);
-//            socketTemplate.sendUser(memberId,"/deleteTeam",teamId);
-//            socketTemplate.sendTeam(teamId,"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
+
+        rabbitmqService.sendToTeam(teamId, WebsocketTopics.DeleteMember, kickedMember.getId());
+        rabbitmqService.sendToUser(kickedMember.getUserId(), WebsocketTopics.DeleteTeam, teamId);
     }
 
     public List<ResTeamMemberDto> getMembersOfTeam(String teamId) {
@@ -114,7 +125,9 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         return resMemberDtos;
     }
 
-    public boolean isMemberOfTeam(String userId, String channelId){
-        return teamMemberRepo.existsByUserIdAndChannelId(userId, channelId)>0;
+    public boolean isMemberOfTeam(String userId, String teamId, String channelId){
+        if(teamId==null&&channelId==null)
+            throw new BadRequestException("Neither team id nor channel id is not null");
+        return teamMemberRepo.existsByUserIdAndTeamIdAndChannelId(userId, teamId, channelId)>0;
     }
 }

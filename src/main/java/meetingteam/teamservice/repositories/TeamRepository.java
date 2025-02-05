@@ -1,7 +1,6 @@
 package meetingteam.teamservice.repositories;
 
 import meetingteam.teamservice.models.Team;
-import meetingteam.teamservice.models.enums.TeamRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

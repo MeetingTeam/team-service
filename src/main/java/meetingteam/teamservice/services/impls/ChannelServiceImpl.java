@@ -3,6 +3,7 @@ package meetingteam.teamservice.services.impls;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
 import meetingteam.commonlibrary.utils.AuthUtil;
+import meetingteam.teamservice.contraints.WebsocketTopics;
 import meetingteam.teamservice.dtos.Channel.CreateChannelDto;
 import meetingteam.teamservice.dtos.Channel.ResChannelDto;
 import meetingteam.teamservice.dtos.Channel.UpdateChannelDto;
@@ -13,9 +14,11 @@ import meetingteam.teamservice.repositories.ChannelRepository;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.services.ChannelService;
+import meetingteam.teamservice.services.ChatService;
+import meetingteam.teamservice.services.MeetingService;
+import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,9 +29,12 @@ public class ChannelServiceImpl implements ChannelService {
     private final ChannelRepository channelRepo;
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
+    private final RabbitmqService rabbitmqService;
+    private final MeetingService meetingService;
+    private final ChatService chatService;
     private final ModelMapper modelMapper;
 
-    public ResChannelDto createChannel(CreateChannelDto channelDto) {
+    public void createChannel(CreateChannelDto channelDto) {
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), channelDto.getTeamId());
         TeamRoleUtil.checkLEADERRole(role);
@@ -37,7 +43,8 @@ public class ChannelServiceImpl implements ChannelService {
         channel.setTeam(teamRepo.getById(channelDto.getTeamId()));
         var savedChannel=channelRepo.save(channel);
 
-        return modelMapper.map(savedChannel, ResChannelDto.class);
+        var resChannelDto= modelMapper.map(savedChannel, ResChannelDto.class);
+        rabbitmqService.sendToTeam(channelDto.getTeamId(), WebsocketTopics.AddOrUpdateChannel, resChannelDto);
     }
 
     public void updateChannel(UpdateChannelDto channelDto) {
@@ -53,6 +60,9 @@ public class ChannelServiceImpl implements ChannelService {
         if(channelDto.getDescription()!=null)
             channel.setDescription(channelDto.getDescription());
         channelRepo.save(channel);
+
+        var resChannelDto= modelMapper.map(channel, ResChannelDto.class);
+        rabbitmqService.sendToTeam(channel.getTeam().getId(), WebsocketTopics.AddOrUpdateChannel, resChannelDto);
     }
 
     public void deleteChannel(String channelId) {
@@ -63,9 +73,11 @@ public class ChannelServiceImpl implements ChannelService {
         TeamRoleUtil.checkLEADERRole(role);
 
         if(channel.getType()== ChannelType.VIDEOCALL_CHANNEL) {
-            // delete Meetings
+            meetingService.deleteMeetingsByChannelId(channel.getId());
         }
-        //else delete chat messages
+        else{
+            chatService.deleteMessagesByChannelId(channelId);
+        }
 
         channelRepo.delete(channel);
     }

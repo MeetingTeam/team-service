@@ -4,6 +4,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
 import meetingteam.commonlibrary.utils.AuthUtil;
+import meetingteam.teamservice.contraints.WebsocketTopics;
+import meetingteam.teamservice.dtos.Team.ResTeamDto;
+import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
 import meetingteam.teamservice.dtos.TeamRequest.CreateTeamRequestDto;
 import meetingteam.teamservice.dtos.TeamRequest.ResTeamRequestDto;
 import meetingteam.teamservice.dtos.User.ResUserDto;
@@ -14,6 +17,7 @@ import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.repositories.TeamRequestRepository;
+import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamRequestService;
 import meetingteam.teamservice.services.UserService;
 import org.modelmapper.ModelMapper;
@@ -32,6 +36,7 @@ public class TeamRequestServiceImpl implements TeamRequestService {
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
     private final UserService userService;
+    private final RabbitmqService rabbitmqService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -46,9 +51,11 @@ public class TeamRequestServiceImpl implements TeamRequestService {
             teamMemberRepo.save(tm);
             team=teamRepo.getTeamWithChannels(team);
 
-//            socketTemplate.sendTeam(team.getId(),"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
-//            socketTemplate.sendUser(u.getId(),"/addTeam",
-//                    teamConverter.convertTeamToDTO(team,team.getMembers(),team.getChannels()));
+            var memberDto= modelMapper.map(tm, ResTeamMemberDto.class);
+            rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddTeamMembers, memberDto);
+
+            var teamDto= modelMapper.map(team, ResTeamDto.class);
+            rabbitmqService.sendToUser(userId, WebsocketTopics.AddOrUpdateTeam, teamDto);
             return "You has been added to team '"+team.getTeamName()+"'";
         }
         else if(!teamRequestRepo.existsBySenderIdAndTeam(userId,team)) {
@@ -59,6 +66,9 @@ public class TeamRequestServiceImpl implements TeamRequestService {
                     .createdAt(LocalDateTime.now())
                     .build();
             teamRequestRepo.save(request);
+
+            var resRequestDto= modelMapper.map(request, ResTeamRequestDto.class);
+            rabbitmqService.sendToTeamPrivate(team.getId(), WebsocketTopics.NewTeamRequest, resRequestDto);
             return "Request has been sent successfully";
         }
         return "Request has been sent before! Please wait for admin of the team accepts";
@@ -79,16 +89,18 @@ public class TeamRequestServiceImpl implements TeamRequestService {
             var requesterTm=teamMemberRepo.findByTeamIdAndUserId(request.getTeam().getId(),request.getSenderId());
             if(requesterTm==null) requesterTm=new TeamMember(request.getTeam(),request.getSenderId(), TeamRole.MEMBER);
             else requesterTm.setRole(TeamRole.MEMBER);
-            teamMemberRepo.save(requesterTm);
+            var savedMember=teamMemberRepo.save(requesterTm);
 
             var team=teamRepo.getTeamWithChannels(request.getTeam());
-//        socketTemplate.sendUser(sender.getId(),"/updateTeam",
-//                teamConverter.convertTeamToDTO(team,team.getMembers(),team.getChannels()));
-//
-//            socketTemplate.sendTeam(teamId,"/updateMembers",List.of(tmConverter.convertToDTO(tm)));
+            var teamDto= modelMapper.map(team, ResTeamDto.class);
+            rabbitmqService.sendToUser(requesterTm.getUserId(), WebsocketTopics.AddOrUpdateTeam, teamDto);
+
+            var memberDto= modelMapper.map(savedMember, ResTeamMemberDto.class);
+            rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddTeamMembers, memberDto);
         }
         else{
-            // send reject info
+            var requestDto= modelMapper.map(request, ResTeamRequestDto.class);
+            rabbitmqService.sendToUser(request.getSenderId(), WebsocketTopics.RejectTeamRequest, requestDto);
         }
     }
 

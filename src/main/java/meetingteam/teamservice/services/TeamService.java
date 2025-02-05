@@ -7,7 +7,7 @@ import meetingteam.teamservice.dtos.Team.UpdateTeamDto;
 import java.util.List;
 
 public interface TeamService {
-    ResTeamDto createTeam(CreateTeamDto teamDto);
+    void createTeam(CreateTeamDto teamDto);
     String updateTeam(UpdateTeamDto teamDto);
     List<ResTeamDto> getJoinedTeams();
 }

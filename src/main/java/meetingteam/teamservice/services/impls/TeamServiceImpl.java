@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
 import meetingteam.commonlibrary.utils.AuthUtil;
+import meetingteam.teamservice.contraints.WebsocketTopics;
 import meetingteam.teamservice.converters.TeamConverter;
 import meetingteam.teamservice.dtos.Team.CreateTeamDto;
 import meetingteam.teamservice.dtos.Team.ResTeamDto;
@@ -16,6 +17,7 @@ import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.services.FileService;
+import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamService;
 import meetingteam.teamservice.services.UserService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
@@ -32,12 +34,12 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepo;
     private final TeamMemberRepository teamMemberRepo;
     private final FileService fileService;
-    private final UserService userService;
+    private final RabbitmqService rabbitmqService;
     private final ModelMapper modelMapper;
     private final TeamConverter teamConverter;
 
     @Transactional
-    public ResTeamDto createTeam(CreateTeamDto teamDto) {
+    public void createTeam(CreateTeamDto teamDto) {
         if(teamDto.getMemberIds().isEmpty())
             throw new BadRequestException("You must add at least one member");
 
@@ -61,7 +63,11 @@ public class TeamServiceImpl implements TeamService {
         team.setChannels(List.of(generalChannel));
 
         var savedTeam=teamRepo.save(team);
-        return teamConverter.toDto(savedTeam);
+        var resTeamDto= modelMapper.map(savedTeam, ResTeamDto.class);
+
+        for(TeamMember member: members){
+            rabbitmqService.sendToUser(member.getUserId(), WebsocketTopics.AddOrUpdateTeam, resTeamDto);
+        }
     }
 
     public String updateTeam(UpdateTeamDto teamDto) {
@@ -86,6 +92,10 @@ public class TeamServiceImpl implements TeamService {
         }
 
         teamRepo.save(team);
+
+        var resTeamDto= modelMapper.map(team, ResTeamDto.class);
+        rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddOrUpdateTeam, resTeamDto);
+
         return preSignedUrl;
     }
 

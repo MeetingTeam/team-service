@@ -1,43 +1,38 @@
 package meetingteam.teamservice.services.impls;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.services.CircuitBreakerFallbackHandler;
 import meetingteam.commonlibrary.utils.AuthUtil;
 import meetingteam.teamservice.configs.ServiceUrlConfig;
-import meetingteam.teamservice.dtos.User.ResUserDto;
-import meetingteam.teamservice.models.TeamMember;
-import meetingteam.teamservice.services.UserService;
-import org.springframework.core.ParameterizedTypeReference;
+import meetingteam.teamservice.services.ChatService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl extends CircuitBreakerFallbackHandler implements UserService{
-    private final ServiceUrlConfig serviceUrlConfig;
+public class ChatServiceImpl extends CircuitBreakerFallbackHandler implements ChatService {
     private final RestClient restClient;
+    private final ServiceUrlConfig serviceUrlConfig;
 
+    @Override
     @Retry(name="restApi")
     @CircuitBreaker(name="restCircuitBreaker")
-    public List<ResUserDto> getUsersByIds(List<String> userIds) {
+    public void deleteMessagesByChannelId(String channelId) {
         String jwtToken= AuthUtil.getJwtToken();
 
-        URI uri= UriComponentsBuilder.fromHttpUrl(serviceUrlConfig.userServiceUrl())
-                .path("/user/private/by-ids")
+        URI uri= UriComponentsBuilder.fromHttpUrl(serviceUrlConfig.chatServiceUrl())
+                .path("/message/private/channel/"+channelId)
                 .build().toUri();
 
-        return restClient.post()
+        restClient.delete()
                 .uri(uri)
                 .headers(h->h.setBearerAuth(jwtToken))
-                .body(userIds)
                 .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+                .body(Void.class);
     }
 }

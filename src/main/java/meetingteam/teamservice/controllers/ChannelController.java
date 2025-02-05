@@ -20,7 +20,8 @@ public class ChannelController {
     public ResponseEntity<ResChannelDto> createChannel(
             @RequestBody @Valid CreateChannelDto channelDto
     ){
-        return ResponseEntity.ok(channelService.createChannel(channelDto));
+        channelService.createChannel(channelDto);
+        return ResponseEntity.ok().build();
     }
 
     @PatchMapping
