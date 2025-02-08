@@ -18,10 +18,9 @@ public class TeamController {
     private final TeamService teamService;
 
     @PostMapping
-    public ResponseEntity<Void> createTeam(
+    public ResponseEntity<ResTeamDto> createTeam(
            @Valid @RequestBody CreateTeamDto teamDto){
-        teamService.createTeam(teamDto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(teamService.createTeam(teamDto));
     }
 
     @PatchMapping

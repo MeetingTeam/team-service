@@ -39,19 +39,13 @@ public class TeamServiceImpl implements TeamService {
     private final TeamConverter teamConverter;
 
     @Transactional
-    public void createTeam(CreateTeamDto teamDto) {
-        if(teamDto.getMemberIds().isEmpty())
-            throw new BadRequestException("You must add at least one member");
-
-        String leaderId= AuthUtil.getUserId();
+    public ResTeamDto createTeam(CreateTeamDto teamDto) {
+        String userId= AuthUtil.getUserId();
         Team team=modelMapper.map(teamDto, Team.class);
         team.setAutoAddMember(false);
 
         List<TeamMember> members= new ArrayList();
-        members.add(new TeamMember(team, leaderId, TeamRole.LEADER));
-        teamDto.getMemberIds().forEach(memberId->{
-            members.add(new TeamMember(team, memberId, TeamRole.MEMBER));
-        });
+        members.add(new TeamMember(team, userId, TeamRole.LEADER));
         team.setMembers(members);
 
         var generalChannel= Channel.builder()
@@ -63,11 +57,7 @@ public class TeamServiceImpl implements TeamService {
         team.setChannels(List.of(generalChannel));
 
         var savedTeam=teamRepo.save(team);
-        var resTeamDto= modelMapper.map(savedTeam, ResTeamDto.class);
-
-        for(TeamMember member: members){
-            rabbitmqService.sendToUser(member.getUserId(), WebsocketTopics.AddOrUpdateTeam, resTeamDto);
-        }
+        return modelMapper.map(savedTeam, ResTeamDto.class);
     }
 
     public String updateTeam(UpdateTeamDto teamDto) {

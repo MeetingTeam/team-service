@@ -80,5 +80,6 @@ public class ChannelServiceImpl implements ChannelService {
         }
 
         channelRepo.delete(channel);
+        rabbitmqService.sendToTeam(channel.getTeam().getId(), WebsocketTopics.DeleteChannel, channel.getId());
     }
 }
