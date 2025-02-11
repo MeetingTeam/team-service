@@ -31,14 +31,14 @@ public class TeamRequestController {
     }
 
     @GetMapping("/team/{teamId}")
-    public ResponseEntity<List<ResTeamRequestDto>> getTeamRequestMessages(
+    public ResponseEntity<List<ResTeamRequestDto>> getTeamRequests(
             @PathVariable("teamId") String teamId){
-        return ResponseEntity.ok(teamRequestService.getTeamRequestMessages(teamId));
+        return ResponseEntity.ok(teamRequestService.getTeamRequests(teamId));
     }
 
     @GetMapping
-    public ResponseEntity<List<ResTeamRequestDto>> getTeamRequestMessages(){
-        return ResponseEntity.ok(teamRequestService.getSendedRequestMessages());
+    public ResponseEntity<List<ResTeamRequestDto>> getTeamRequests(){
+        return ResponseEntity.ok(teamRequestService.getSendedRequests());
     }
 
     @DeleteMapping("/{requestId}")

@@ -13,7 +13,7 @@ public class ResTeamDto {
 
     private String urlIcon;
 
-    private Boolean autoAddMember=false;
+    private Boolean autoAddMember;
 
     private List<ResChannelDto> channels;
 }

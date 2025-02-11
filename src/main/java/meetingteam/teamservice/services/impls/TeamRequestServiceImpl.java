@@ -67,8 +67,6 @@ public class TeamRequestServiceImpl implements TeamRequestService {
                     .build();
             teamRequestRepo.save(request);
 
-            var resRequestDto= modelMapper.map(request, ResTeamRequestDto.class);
-            rabbitmqService.sendToTeamPrivate(team.getId(), WebsocketTopics.NewTeamRequest, resRequestDto);
             return "Request has been sent successfully";
         }
         return "Request has been sent before! Please wait for admin of the team accepts";
@@ -98,10 +96,6 @@ public class TeamRequestServiceImpl implements TeamRequestService {
             var memberDto= modelMapper.map(savedMember, ResTeamMemberDto.class);
             rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddTeamMembers, memberDto);
         }
-        else{
-            var requestDto= modelMapper.map(request, ResTeamRequestDto.class);
-            rabbitmqService.sendToUser(request.getSenderId(), WebsocketTopics.RejectTeamRequest, requestDto);
-        }
     }
 
     @Override
@@ -114,7 +108,7 @@ public class TeamRequestServiceImpl implements TeamRequestService {
     }
 
     @Override
-    public List<ResTeamRequestDto> getTeamRequestMessages(String teamId) {
+    public List<ResTeamRequestDto> getTeamRequests(String teamId) {
         var tm = teamMemberRepo.findByTeamIdAndUserId(teamId, AuthUtil.getUserId());
         if(tm.getRole() != TeamRole.LEADER)
             throw new AccessDeniedException("You do not have permission to get requests of this team");
@@ -134,7 +128,7 @@ public class TeamRequestServiceImpl implements TeamRequestService {
     }
 
     @Override
-    public List<ResTeamRequestDto> getSendedRequestMessages() {
+    public List<ResTeamRequestDto> getSendedRequests() {
         String userId= AuthUtil.getUserId();
         var requests= teamRequestRepo.getSentRequestMessages(userId);
         return requests.stream()

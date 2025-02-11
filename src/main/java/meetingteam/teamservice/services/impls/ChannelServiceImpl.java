@@ -72,7 +72,7 @@ public class ChannelServiceImpl implements ChannelService {
                 AuthUtil.getUserId(), channel.getTeam().getId());
         TeamRoleUtil.checkLEADERRole(role);
 
-        if(channel.getType()== ChannelType.VIDEOCALL_CHANNEL) {
+        if(channel.getType()== ChannelType.VOICE_CHANNEL) {
             meetingService.deleteMeetingsByChannelId(channel.getId());
         }
         else{

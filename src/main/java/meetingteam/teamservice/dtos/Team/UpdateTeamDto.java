@@ -11,7 +11,7 @@ public class UpdateTeamDto{
 
     private String teamName;
 
-    private String iconFilename;
+    private String urlIcon;
 
     private Boolean autoAddMember;
 }

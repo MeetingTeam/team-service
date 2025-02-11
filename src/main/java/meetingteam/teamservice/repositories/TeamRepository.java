@@ -1,6 +1,8 @@
 package meetingteam.teamservice.repositories;
 
 import meetingteam.teamservice.models.Team;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +16,7 @@ public interface TeamRepository extends JpaRepository<Team, String> {
     List<String> getTeamIdsByUserId(String userId);
 
     @Query("select team from Team team left join fetch team.channels where team in :teamIds")
-    List<Team> getTeamsWithChannels(@Param("teamIds") List<String> teamIds);
+    Page<Team> getTeamsWithChannels(@Param("teamIds") List<String> teamIds, Pageable pageable);
 
     @Query("select team from Team team left join fetch team.channels where team=?1")
     Team getTeamWithChannels(Team team);

@@ -2,6 +2,7 @@ package meetingteam.teamservice.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import meetingteam.commonlibrary.dtos.PagedResponseDto;
 import meetingteam.teamservice.dtos.Team.CreateTeamDto;
 import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.Team.UpdateTeamDto;
@@ -24,13 +25,17 @@ public class TeamController {
     }
 
     @PatchMapping
-    public ResponseEntity<String> updateTeam(
+    public ResponseEntity<Void> updateTeam(
             @Valid @RequestBody UpdateTeamDto teamDto){
-        return ResponseEntity.ok(teamService.updateTeam(teamDto));
+        teamService.updateTeam(teamDto);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping
-    public ResponseEntity<List<ResTeamDto>> getJoinedTeams() {
-        return ResponseEntity.ok(teamService.getJoinedTeams());
+    public ResponseEntity<PagedResponseDto<ResTeamDto>> getJoinedTeams(
+            @RequestParam("pageNo") Integer pageNo,
+            @RequestParam("pageSize") Integer pageSize
+    ) {
+        return ResponseEntity.ok(teamService.getJoinedTeams(pageNo, pageSize));
     }
 }

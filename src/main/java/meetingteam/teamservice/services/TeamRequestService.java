@@ -9,6 +9,6 @@ public interface TeamRequestService {
     String requestToJoinTeam(CreateTeamRequestDto requestDto);
     void acceptNewMember(String requestId, boolean isAccepted);
     void deleteTeamRequest(String requestId);
-    List<ResTeamRequestDto> getTeamRequestMessages(String teamId);
-    List<ResTeamRequestDto> getSendedRequestMessages();
+    List<ResTeamRequestDto> getTeamRequests(String teamId);
+    List<ResTeamRequestDto> getSendedRequests();
 }
