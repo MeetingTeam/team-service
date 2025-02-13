@@ -23,6 +23,7 @@ import meetingteam.teamservice.services.FileService;
 import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamService;
 import meetingteam.teamservice.services.UserService;
+import meetingteam.teamservice.services.WebsocketService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +41,7 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepo;
     private final TeamMemberRepository teamMemberRepo;
     private final FileService fileService;
-    private final RabbitmqService rabbitmqService;
+    private final WebsocketService websocketService;
     private final ModelMapper modelMapper;
     private final TeamConverter teamConverter;
 
@@ -82,19 +83,19 @@ public class TeamServiceImpl implements TeamService {
         if(teamDto.getAutoAddMember()!=null)
             team.setAutoAddMember(teamDto.getAutoAddMember());
         if(teamDto.getUrlIcon()!=null){
-            if(teamDto.getUrlIcon().startsWith(s3BaseUrl))
+            if(!teamDto.getUrlIcon().startsWith(s3BaseUrl))
                 throw new BadRequestException("Invalid UrlIcon");
             var newImageName=teamDto.getUrlIcon().substring(s3BaseUrl.length());
             if(!FileUtil.isImageUrl(newImageName))
                 throw new BadRequestException("Url Icon is not an image url");
-            fileService.deleteFile(team.getUrlIcon());
+            if(team.getUrlIcon()!=null) fileService.deleteFile(team.getUrlIcon());
             team.setUrlIcon(teamDto.getUrlIcon());
         }
 
         teamRepo.save(team);
 
         var resTeamDto= modelMapper.map(team, ResTeamDto.class);
-        rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddOrUpdateTeam, resTeamDto);
+        websocketService.addOrUpdateTeamToTeam(team.getId(), resTeamDto);
     }
 
     public PagedResponseDto<ResTeamDto> getJoinedTeams(Integer pageNo, Integer pageSize){

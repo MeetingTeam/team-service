@@ -13,14 +13,15 @@ import meetingteam.teamservice.models.TeamMember;
 import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
-import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamMemberService;
 import meetingteam.teamservice.services.UserService;
+import meetingteam.teamservice.services.WebsocketService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Member;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +32,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
     private final UserService userService;
-    private final RabbitmqService rabbitmqService;
+    private final WebsocketService websocketService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -50,15 +51,13 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         teamMemberRepo.saveAll(members);
 
         List<TeamMember> savedMembers=teamMemberRepo.saveAll(members);
-        List<ResTeamMemberDto> memberDtos= savedMembers.stream()
-                        .map(member->modelMapper.map(member, ResTeamMemberDto.class))
-                        .toList();
-        rabbitmqService.sendToTeam(teamId, WebsocketTopics.AddTeamMembers, memberDtos);
+        var memberDtos= fetchUsersData(friendIds, savedMembers);
+        websocketService.addTeamMembers(teamId, memberDtos);
 
         Team team=teamRepo.getTeamWithChannels(teamRepo.getById(teamId));
         var teamDto= modelMapper.map(team, ResTeamDto.class);
         for(String friendId: friendIds){
-            rabbitmqService.sendToUser(friendId, WebsocketTopics.AddOrUpdateTeam, teamDto);
+            websocketService.addOrUpdateTeamToUser(friendId, teamDto);
         }
     }
 
@@ -89,7 +88,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
             teamMemberRepo.save(tm);
         }
 
-        rabbitmqService.sendToTeam(teamId, WebsocketTopics.DeleteMember, tm.getId());
+        websocketService.deleteMember(teamId, tm.getId());
     }
 
     public void kickMember(String teamId, String memberId) {
@@ -102,13 +101,19 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         kickedMember.setRole(TeamRole.LEAVE);
         teamMemberRepo.save(kickedMember);
 
-        rabbitmqService.sendToTeam(teamId, WebsocketTopics.DeleteMember, kickedMember.getId());
-        rabbitmqService.sendToUser(kickedMember.getUserId(), WebsocketTopics.DeleteTeam, teamId);
+        websocketService.deleteMember(teamId, memberId);
+        websocketService.deleteTeam(kickedMember.getUserId(), teamId);
     }
 
     public List<ResTeamMemberDto> getMembersOfTeam(String teamId) {
         var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
         var userIds=members.stream().map(member->member.getUserId()).toList();
+        return fetchUsersData(userIds, members);
+    }
+
+    private List<ResTeamMemberDto> fetchUsersData(List<String> userIds, List<TeamMember> members){
+        if(userIds==null||userIds.isEmpty()) return new ArrayList();
+
         List<ResUserDto> userDtos=userService.getUsersByIds(userIds);
 
         var userDtosMap= new HashMap<String,ResUserDto>();

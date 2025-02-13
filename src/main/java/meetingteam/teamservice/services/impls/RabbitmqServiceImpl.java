@@ -46,16 +46,4 @@ public class RabbitmqServiceImpl implements RabbitmqService {
             throw new InternalServerException("Unable to send message");
         }
     }
-
-    public void sendToTeamPrivate(String teamId, String topic, Object payload){
-        try{
-            String dest="/topic/team.private"+teamId;
-            SocketDto socketDto = new SocketDto(dest,topic, payload);
-            String jsonData = objectMapper.writeValueAsString(socketDto);
-            rabbitTemplate.convertAndSend(exchangeName, dest, jsonData);
-        }
-        catch(Exception e){
-            throw new InternalServerException("Unable to send message");
-        }
-    }
 }

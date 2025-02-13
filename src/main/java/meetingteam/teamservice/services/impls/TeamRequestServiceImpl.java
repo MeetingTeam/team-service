@@ -17,9 +17,10 @@ import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.repositories.TeamRequestRepository;
-import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamRequestService;
 import meetingteam.teamservice.services.UserService;
+import meetingteam.teamservice.services.WebsocketService;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class TeamRequestServiceImpl implements TeamRequestService {
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
     private final UserService userService;
-    private final RabbitmqService rabbitmqService;
+    private final WebsocketService websocketService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -52,10 +53,10 @@ public class TeamRequestServiceImpl implements TeamRequestService {
             team=teamRepo.getTeamWithChannels(team);
 
             var memberDto= modelMapper.map(tm, ResTeamMemberDto.class);
-            rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddTeamMembers, memberDto);
+            websocketService.addTeamMembers(team.getId(), List.of(memberDto));
 
             var teamDto= modelMapper.map(team, ResTeamDto.class);
-            rabbitmqService.sendToUser(userId, WebsocketTopics.AddOrUpdateTeam, teamDto);
+            websocketService.addOrUpdateTeamToUser(userId, teamDto);
             return "You has been added to team '"+team.getTeamName()+"'";
         }
         else if(!teamRequestRepo.existsBySenderIdAndTeam(userId,team)) {
@@ -91,10 +92,11 @@ public class TeamRequestServiceImpl implements TeamRequestService {
 
             var team=teamRepo.getTeamWithChannels(request.getTeam());
             var teamDto= modelMapper.map(team, ResTeamDto.class);
-            rabbitmqService.sendToUser(requesterTm.getUserId(), WebsocketTopics.AddOrUpdateTeam, teamDto);
+            
+            websocketService.addOrUpdateTeamToUser(requesterTm.getUserId(),  teamDto);
 
             var memberDto= modelMapper.map(savedMember, ResTeamMemberDto.class);
-            rabbitmqService.sendToTeam(team.getId(), WebsocketTopics.AddTeamMembers, memberDto);
+            websocketService.addTeamMembers(team.getId(), List.of(memberDto));
         }
     }
 

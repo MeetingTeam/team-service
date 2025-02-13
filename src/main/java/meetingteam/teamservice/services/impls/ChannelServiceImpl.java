@@ -16,12 +16,10 @@ import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.services.ChannelService;
 import meetingteam.teamservice.services.ChatService;
 import meetingteam.teamservice.services.MeetingService;
-import meetingteam.teamservice.services.RabbitmqService;
+import meetingteam.teamservice.services.WebsocketService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +27,7 @@ public class ChannelServiceImpl implements ChannelService {
     private final ChannelRepository channelRepo;
     private final TeamMemberRepository teamMemberRepo;
     private final TeamRepository teamRepo;
-    private final RabbitmqService rabbitmqService;
+    private final WebsocketService websocketService;
     private final MeetingService meetingService;
     private final ChatService chatService;
     private final ModelMapper modelMapper;
@@ -44,7 +42,7 @@ public class ChannelServiceImpl implements ChannelService {
         var savedChannel=channelRepo.save(channel);
 
         var resChannelDto= modelMapper.map(savedChannel, ResChannelDto.class);
-        rabbitmqService.sendToTeam(channelDto.getTeamId(), WebsocketTopics.AddOrUpdateChannel, resChannelDto);
+        websocketService.addOrUpdateChannel(channelDto.getTeamId(), resChannelDto);
     }
 
     public void updateChannel(UpdateChannelDto channelDto) {
@@ -62,7 +60,7 @@ public class ChannelServiceImpl implements ChannelService {
         channelRepo.save(channel);
 
         var resChannelDto= modelMapper.map(channel, ResChannelDto.class);
-        rabbitmqService.sendToTeam(channel.getTeam().getId(), WebsocketTopics.AddOrUpdateChannel, resChannelDto);
+        websocketService.addOrUpdateChannel(channel.getTeam().getId(), resChannelDto);
     }
 
     public void deleteChannel(String channelId) {
@@ -80,6 +78,6 @@ public class ChannelServiceImpl implements ChannelService {
         }
 
         channelRepo.delete(channel);
-        rabbitmqService.sendToTeam(channel.getTeam().getId(), WebsocketTopics.DeleteChannel, channel.getId());
+        websocketService.deleteChannel(channel.getTeam().getId(), channel.getId());
     }
 }
