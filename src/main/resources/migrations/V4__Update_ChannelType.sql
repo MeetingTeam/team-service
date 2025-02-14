@@ -1,0 +1,1 @@
+alter table channel modify column type enum('CHAT_CHANNEL','VOICE_CHANNEL');
