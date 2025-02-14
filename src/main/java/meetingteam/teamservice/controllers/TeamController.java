@@ -45,4 +45,10 @@ public class TeamController {
     ) {
         return ResponseEntity.ok(teamService.getJoinedTeams(pageNo, pageSize));
     }
+
+    @GetMapping("/search/{searchName}")
+    public ResponseEntity<List<ResTeamDto>> searchTeamsByName(
+            @PathVariable String searchName) {
+        return ResponseEntity.ok(teamService.searchByTeamName(searchName));
+    }
 }

@@ -109,11 +109,21 @@ public class TeamServiceImpl implements TeamService {
         String userId= AuthUtil.getUserId();
         var pageRequest= PageRequest.of(pageNo, pageSize);
 
-        List<String> teamIds = teamRepo.getTeamIdsByUserId(userId);
-        Page<Team> teamsPage=teamRepo.getTeamsWithChannels(teamIds, pageRequest);
+        Page<Team> teamsPage=teamRepo.getTeamsWithChannelsByUserId(userId, pageRequest);
 
         var pagination= new Pagination(pageNo, teamsPage.getTotalPages(), teamsPage.getTotalElements());
         return new PagedResponseDto(teamConverter.toDtos(teamsPage.getContent()), pagination);
+    }
+
+    @Override
+    public List<ResTeamDto> searchByTeamName(String searchName) {
+        String userId= AuthUtil.getUserId();
+        var pageRequest= PageRequest.of(0, 10);
+
+        var teams= teamRepo.getTeamsByUserIdAndSearchName(userId, searchName.toLowerCase(), pageRequest);
+        return teams.stream()
+                    .map(team->modelMapper.map(team, ResTeamDto.class))
+                    .toList();
     }
 
     @Override
