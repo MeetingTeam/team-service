@@ -95,8 +95,8 @@ public class TeamRequestServiceImpl implements TeamRequestService {
             
             websocketService.addOrUpdateTeamToUser(requesterTm.getUserId(),  teamDto);
 
-            var memberDto= modelMapper.map(savedMember, ResTeamMemberDto.class);
-            websocketService.addTeamMembers(team.getId(), List.of(memberDto));
+            var memberDtos= userService.fetchUsersData(List.of(savedMember.getUserId()), List.of(savedMember));
+            websocketService.addTeamMembers(team.getId(), memberDtos);
         }
     }
 

@@ -1,6 +1,8 @@
 package meetingteam.teamservice.dtos.TeamRequest;
 
 import lombok.Data;
+import meetingteam.teamservice.dtos.Team.RequestTeamDto;
+import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.User.ResUserDto;
 
 import java.time.LocalDateTime;
@@ -11,7 +13,7 @@ public class ResTeamRequestDto {
 
     private ResUserDto sender;
 
-    private ResTeamRequestDto team;
+    private RequestTeamDto team;
 
     private String content;
 

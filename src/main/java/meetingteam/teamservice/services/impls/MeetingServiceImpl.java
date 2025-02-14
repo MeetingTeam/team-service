@@ -36,4 +36,21 @@ public class MeetingServiceImpl extends CircuitBreakerFallbackHandler implements
                 .retrieve()
                 .body(Void.class);
     }
+
+    @Override
+    @Retry(name="restApi")
+    @CircuitBreaker(name="restCircuitBreaker")
+    public void deleteMessagesByTeamId(String teamId) {
+        String jwtToken= AuthUtil.getJwtToken();
+
+        URI uri= UriComponentsBuilder.fromHttpUrl(serviceUrlConfig.meetingServiceUrl())
+                .path("/meeting/private/team/"+teamId)
+                .build().toUri();
+
+        restClient.delete()
+                .uri(uri)
+                .headers(h->h.setBearerAuth(jwtToken))
+                .retrieve()
+                .body(Void.class);
+    }
 }

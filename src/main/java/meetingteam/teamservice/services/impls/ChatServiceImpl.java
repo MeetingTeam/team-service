@@ -35,4 +35,21 @@ public class ChatServiceImpl extends CircuitBreakerFallbackHandler implements Ch
                 .retrieve()
                 .body(Void.class);
     }
+
+    @Override
+    @Retry(name="restApi")
+    @CircuitBreaker(name="restCircuitBreaker")
+    public void deleteMessagesByTeamId(String teamId) {
+        String jwtToken= AuthUtil.getJwtToken();
+
+        URI uri= UriComponentsBuilder.fromHttpUrl(serviceUrlConfig.chatServiceUrl())
+                .path("/message/private/team/"+teamId)
+                .build().toUri();
+
+        restClient.delete()
+                .uri(uri)
+                .headers(h->h.setBearerAuth(jwtToken))
+                .retrieve()
+                .body(Void.class);
+    }
 }

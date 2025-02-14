@@ -31,6 +31,13 @@ public class TeamController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{teamId}")
+    public ResponseEntity<Void> deleteTeam(
+            @PathVariable("teamId") String teamId){
+        teamService.deleteTeam(teamId);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     public ResponseEntity<PagedResponseDto<ResTeamDto>> getJoinedTeams(
             @RequestParam("pageNo") Integer pageNo,

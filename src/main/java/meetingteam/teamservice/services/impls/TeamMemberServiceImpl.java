@@ -51,7 +51,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         teamMemberRepo.saveAll(members);
 
         List<TeamMember> savedMembers=teamMemberRepo.saveAll(members);
-        var memberDtos= fetchUsersData(friendIds, savedMembers);
+        var memberDtos= userService.fetchUsersData(friendIds, savedMembers);
         websocketService.addTeamMembers(teamId, memberDtos);
 
         Team team=teamRepo.getTeamWithChannels(teamRepo.getById(teamId));
@@ -88,7 +88,8 @@ public class TeamMemberServiceImpl implements TeamMemberService {
             teamMemberRepo.save(tm);
         }
 
-        websocketService.deleteMember(teamId, tm.getId());
+        websocketService.deleteTeam(userId, teamId);
+        websocketService.deleteMember(teamId, tm.getUserId());
     }
 
     public void kickMember(String teamId, String memberId) {
@@ -108,26 +109,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     public List<ResTeamMemberDto> getMembersOfTeam(String teamId) {
         var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
         var userIds=members.stream().map(member->member.getUserId()).toList();
-        return fetchUsersData(userIds, members);
-    }
-
-    private List<ResTeamMemberDto> fetchUsersData(List<String> userIds, List<TeamMember> members){
-        if(userIds==null||userIds.isEmpty()) return new ArrayList();
-
-        List<ResUserDto> userDtos=userService.getUsersByIds(userIds);
-
-        var userDtosMap= new HashMap<String,ResUserDto>();
-        userDtos.forEach(userDto->userDtosMap.put(userDto.getId(), userDto));
-
-        var resMemberDtos=new ArrayList<ResTeamMemberDto>();
-        for(var member: members){
-            var resMemberDto= new ResTeamMemberDto(
-                    modelMapper.map(userDtosMap.get(member.getUserId()), ResUserDto.class),
-                    member.getRole()
-            );
-            resMemberDtos.add(resMemberDto);
-        }
-        return resMemberDtos;
+        return userService.fetchUsersData(userIds, members);
     }
 
     public boolean isMemberOfTeam(String userId, String teamId, String channelId){

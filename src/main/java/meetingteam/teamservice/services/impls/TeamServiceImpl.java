@@ -17,9 +17,12 @@ import meetingteam.teamservice.models.Team;
 import meetingteam.teamservice.models.TeamMember;
 import meetingteam.teamservice.models.enums.ChannelType;
 import meetingteam.teamservice.models.enums.TeamRole;
+import meetingteam.teamservice.repositories.ChannelRepository;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
+import meetingteam.teamservice.services.ChatService;
 import meetingteam.teamservice.services.FileService;
+import meetingteam.teamservice.services.MeetingService;
 import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamService;
 import meetingteam.teamservice.services.UserService;
@@ -40,8 +43,11 @@ import java.util.List;
 public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepo;
     private final TeamMemberRepository teamMemberRepo;
+    private final ChannelRepository channelRepo;
     private final FileService fileService;
     private final WebsocketService websocketService;
+    private final ChatService chatService;
+    private final MeetingService meetingService;
     private final ModelMapper modelMapper;
     private final TeamConverter teamConverter;
 
@@ -85,9 +91,10 @@ public class TeamServiceImpl implements TeamService {
         if(teamDto.getUrlIcon()!=null){
             if(!teamDto.getUrlIcon().startsWith(s3BaseUrl))
                 throw new BadRequestException("Invalid UrlIcon");
-            var newImageName=teamDto.getUrlIcon().substring(s3BaseUrl.length());
-            if(!FileUtil.isImageUrl(newImageName))
+            var iconImageName=teamDto.getUrlIcon().substring(s3BaseUrl.length());
+            if(!FileUtil.isImageUrl(iconImageName))
                 throw new BadRequestException("Url Icon is not an image url");
+            fileService.addIsLinkedTag(iconImageName);
             if(team.getUrlIcon()!=null) fileService.deleteFile(team.getUrlIcon());
             team.setUrlIcon(teamDto.getUrlIcon());
         }
@@ -107,5 +114,19 @@ public class TeamServiceImpl implements TeamService {
 
         var pagination= new Pagination(pageNo, teamsPage.getTotalPages(), teamsPage.getTotalElements());
         return new PagedResponseDto(teamConverter.toDtos(teamsPage.getContent()), pagination);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTeam(String teamId) {
+        TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
+                AuthUtil.getUserId(), teamId);
+        TeamRoleUtil.checkLEADERRole(role);
+
+        chatService.deleteMessagesByTeamId(teamId);
+        meetingService.deleteMessagesByTeamId(teamId);
+
+        channelRepo.deleteByTeamId(teamId);
+        teamRepo.deleteById(teamId);
     }
 }
