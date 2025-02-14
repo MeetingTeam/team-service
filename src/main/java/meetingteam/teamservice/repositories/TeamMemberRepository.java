@@ -4,7 +4,10 @@ import meetingteam.teamservice.models.Team;
 import meetingteam.teamservice.models.TeamMember;
 import meetingteam.teamservice.models.enums.TeamRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+
+import jakarta.transaction.Transactional;
 
 import java.util.List;
 
@@ -26,4 +29,9 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember,String> {
 	TeamRole getRoleByUserIdAndTeamId(String userId, String teamId);
 
 	List<TeamMember> findByTeam(Team team);
+
+	@Modifying
+	@Transactional
+	@Query("delete from TeamMember tm where tm.team.id=?1")
+	void deleteByTeamId(String teamId);
 }

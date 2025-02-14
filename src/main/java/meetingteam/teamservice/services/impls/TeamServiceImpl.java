@@ -132,11 +132,17 @@ public class TeamServiceImpl implements TeamService {
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), teamId);
         TeamRoleUtil.checkLEADERRole(role);
+        var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
 
         chatService.deleteMessagesByTeamId(teamId);
         meetingService.deleteMessagesByTeamId(teamId);
 
         channelRepo.deleteByTeamId(teamId);
+       teamMemberRepo.deleteByTeamId(teamId); 
         teamRepo.deleteById(teamId);
+
+        for(var member: members){
+            websocketService.deleteTeam(member.getUserId(), teamId);
+        }
     }
 }
