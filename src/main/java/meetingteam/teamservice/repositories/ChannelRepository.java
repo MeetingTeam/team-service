@@ -17,9 +17,4 @@ public interface ChannelRepository extends JpaRepository<Channel, String>{
 	
 	@Query("select channel.team.teamName from Channel channel where channel.id=?1")
 	String findTeamNameById(String channelId);
-
-	@Modifying
-	@Transactional
-	@Query("delete from Channel channel where channel.team.id=?1")
-	void deleteByTeamId(String teamId);
 }

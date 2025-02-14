@@ -23,16 +23,13 @@ import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.services.ChatService;
 import meetingteam.teamservice.services.FileService;
 import meetingteam.teamservice.services.MeetingService;
-import meetingteam.teamservice.services.RabbitmqService;
 import meetingteam.teamservice.services.TeamService;
-import meetingteam.teamservice.services.UserService;
 import meetingteam.teamservice.services.WebsocketService;
 import meetingteam.teamservice.utils.TeamRoleUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -43,7 +40,6 @@ import java.util.List;
 public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepo;
     private final TeamMemberRepository teamMemberRepo;
-    private final ChannelRepository channelRepo;
     private final FileService fileService;
     private final WebsocketService websocketService;
     private final ChatService chatService;
@@ -129,6 +125,9 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public void deleteTeam(String teamId) {
+        var team= teamRepo.findById(teamId)
+                .orElseThrow(()->new BadRequestException("Team not found"));
+
         TeamRole role= teamMemberRepo.getRoleByUserIdAndTeamId(
                 AuthUtil.getUserId(), teamId);
         TeamRoleUtil.checkLEADERRole(role);
@@ -136,10 +135,9 @@ public class TeamServiceImpl implements TeamService {
 
         chatService.deleteMessagesByTeamId(teamId);
         meetingService.deleteMessagesByTeamId(teamId);
+        if(team.getUrlIcon()!=null) fileService.deleteFile(team.getUrlIcon());
 
-        channelRepo.deleteByTeamId(teamId);
-       teamMemberRepo.deleteByTeamId(teamId); 
-        teamRepo.deleteById(teamId);
+        teamRepo.delete(team);
 
         for(var member: members){
             websocketService.deleteTeam(member.getUserId(), teamId);

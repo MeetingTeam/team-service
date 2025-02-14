@@ -29,9 +29,4 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember,String> {
 	TeamRole getRoleByUserIdAndTeamId(String userId, String teamId);
 
 	List<TeamMember> findByTeam(Team team);
-
-	@Modifying
-	@Transactional
-	@Query("delete from TeamMember tm where tm.team.id=?1")
-	void deleteByTeamId(String teamId);
 }
