@@ -21,7 +21,7 @@ public class ChatServiceImpl extends CircuitBreakerFallbackHandler implements Ch
 
     @Override
     @Retry(name="restApi")
-    @CircuitBreaker(name="restCircuitBreaker")
+    @CircuitBreaker(name="restCircuitBreaker", fallbackMethod="handleBodilessFallback")
     public void deleteMessagesByChannelId(String channelId) {
         String jwtToken= AuthUtil.getJwtToken();
 
@@ -38,7 +38,7 @@ public class ChatServiceImpl extends CircuitBreakerFallbackHandler implements Ch
 
     @Override
     @Retry(name="restApi")
-    @CircuitBreaker(name="restCircuitBreaker")
+    @CircuitBreaker(name="restCircuitBreaker", fallbackMethod="handleBodilessFallback")
     public void deleteMessagesByTeamId(String teamId) {
         String jwtToken= AuthUtil.getJwtToken();
 

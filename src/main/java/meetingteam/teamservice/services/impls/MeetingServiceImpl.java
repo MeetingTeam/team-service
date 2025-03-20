@@ -22,7 +22,7 @@ public class MeetingServiceImpl extends CircuitBreakerFallbackHandler implements
 
     @Override
     @Retry(name="restApi")
-    @CircuitBreaker(name="restCircuitBreaker")
+    @CircuitBreaker(name="restCircuitBreaker", fallbackMethod="handleBodilessFallback")
     public void deleteMeetingsByChannelId(String channelId) {
         String jwtToken= AuthUtil.getJwtToken();
 
@@ -39,7 +39,7 @@ public class MeetingServiceImpl extends CircuitBreakerFallbackHandler implements
 
     @Override
     @Retry(name="restApi")
-    @CircuitBreaker(name="restCircuitBreaker")
+    @CircuitBreaker(name="restCircuitBreaker", fallbackMethod="handleBodilessFallback")
     public void deleteMessagesByTeamId(String teamId) {
         String jwtToken= AuthUtil.getJwtToken();
 

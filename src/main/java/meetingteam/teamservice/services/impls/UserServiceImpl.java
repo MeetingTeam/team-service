@@ -3,7 +3,6 @@ package meetingteam.teamservice.services.impls;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
-import meetingteam.commonlibrary.services.CircuitBreakerFallbackHandler;
 import meetingteam.commonlibrary.utils.AuthUtil;
 import meetingteam.teamservice.configs.ServiceUrlConfig;
 import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
@@ -24,7 +23,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl extends CircuitBreakerFallbackHandler implements UserService{
+public class UserServiceImpl implements UserService{
     private final ServiceUrlConfig serviceUrlConfig;
     private final RestClient restClient;
     private final ModelMapper modelMapper;
@@ -46,6 +45,8 @@ public class UserServiceImpl extends CircuitBreakerFallbackHandler implements Us
                 .body(new ParameterizedTypeReference<>() {});
     }
 
+    @Retry(name="restApi")
+    @CircuitBreaker(name="restCircuitBreaker")
     public List<ResTeamMemberDto> fetchUsersData(List<String> userIds, List<TeamMember> members){
         if(userIds==null||userIds.isEmpty()) return new ArrayList();
 
