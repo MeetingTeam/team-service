@@ -1,16 +1,18 @@
 FROM openjdk:17-jdk-alpine
 
-## Change directory
+# Change directory
 WORKDIR /app
 
-## Create non-root user
+# Copy war file
+COPY target/team-service-0.0.1-SNAPSHOT.war team-service.war
+
+# Create non-root user
 RUN adduser -D team_service
 RUN chown -R team_service:team_service /app
 USER team_service
 
-## Copy war file and run app
-COPY target/team-service-0.0.1-SNAPSHOT.war team_service.war
-ENTRYPOINT ["java","-jar","team_service.war"]
+# Run app
+ENTRYPOINT ["sh","-c","java -jar -Dspring.config.location=${CONFIG_PATH} team-service.war"]
 
-## Expose port 8081
+# Expose port 8081
 EXPOSE 8081
