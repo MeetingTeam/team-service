@@ -11,6 +11,7 @@ def helmValueFile = "values.yaml"
 
 def dockerhubAccount = 'dockerhub'
 def githubAccount = 'github'
+def kanikoAccount = 'kaniko'
 
 def dockerImageName = 'hungtran679/mt_team-service'
 def dockerfilePath = '.'
@@ -47,18 +48,24 @@ pipeline{
                                                                       usernameVariable: 'GIT_USER'
                                                             )
                                                   ]) {
-                                                           sh """
-                                                                      echo "<settings>
-                                                                                          <servers>
-                                                                                                    <server>
-                                                                                                              <id>github</id>
-                                                                                                              <username>\${GIT_USER}</username>
-                                                                                                              <password>\${GIT_PASS}</password>
-                                                                                                    </server>
-                                                                                          </servers>
-                                                                                </settings>" > /root/.m2/settings.xml
-                                                                      mvn clean test
-                                                           """
+                                                      script {
+                                                          def settingsXml = """
+                                                              <settings>
+                                                                <servers>
+                                                                  <server>
+                                                                    <id>github</id>
+                                                                    <username>${GIT_USER}</username>
+                                                                    <password>${GIT_PASS}</password>
+                                                                  </server>
+                                                                </servers>
+                                                              </settings>
+                                                            """
+                                                          writeFile file: 'settings.xml', text: settingsXml.trim()
+                                                          sh '''
+                                                                mv settings.xml /root/.m2/settings.xml
+                                                                mvn clean test
+                                                              '''
+                                                      }
                                                   }                                        
                                         }
                               }
@@ -99,19 +106,28 @@ pipeline{
                               steps{
                                         container('kaniko'){
                                                    withCredentials([
-                                                            usernamePassword(
-                                                                      credentialsId: dockerhubAccount, 
-                                                                      usernameVariable: 'DOCKER_USER', 
-                                                                      passwordVariable: 'DOCKER_PASS'
-                                                            )
+                                                            string(credentialsId: kanikoAccount, variable: 'KANIKO_AUTH')
                                                   ]) {
-                                                            sh """
-                                                                      echo "{ \\"auths\\": { \\"\${DOCKER_REGISTRY}\\": { \\"auth\\": \\"\$(echo -n \${DOCKER_USER}:\${DOCKER_PASS} | base64)\\" } } }" > /kaniko/.docker/config.json
-                                                                      /kaniko/executor \
-                                                                      --context=${dockerfilePath} \
-                                                                      --dockerfile=${dockerfilePath}/Dockerfile \
-                                                                      --destination=\${DOCKER_REGISTRY}/${dockerImageName}:${version} \
+                                                      script {
+                                                          def dockerConfig = """
+                                                            {
+                                                              "auths": {
+                                                                "${DOCKER_REGISTRY}": {
+                                                                  "auth": "${KANIKO_AUTH}"
+                                                                }
+                                                              }
+                                                            }
                                                             """
+                                                          writeFile file: 'config.json', text: dockerConfig.trim()
+                                                          
+                                                          sh """
+                                                            mv config.json /kaniko/.docker/config.json
+                                                            /kaniko/executor \
+                                                              --context=${dockerfilePath} \
+                                                              --dockerfile=${dockerfilePath}/Dockerfile \
+                                                              --destination=${DOCKER_REGISTRY}/${dockerImageName}:${version}
+                                                          """
+                                                      }
                                                   }
                                         }
                               }
