@@ -1,6 +1,5 @@
 def baseRepoUrl = 'https://github.com/MeetingTeam'
 def mainBranch = 'main'
-def testBranch = 'test'
 
 def appRepoName = 'team-service'
 def appRepoUrl = "${baseRepoUrl}/${appRepoName}.git"
@@ -38,16 +37,16 @@ pipeline{
           }
           
           stages{
-                      stage('Unit test stage'){
-                              steps{
-                                        container('maven'){
+                      stage('Setup credentials for maven'){
+                        steps {
+                                    container('maven'){
                                                   withCredentials([
                                                             usernamePassword(
                                                                       credentialsId: githubAccount, 
                                                                       passwordVariable: 'GIT_PASS', 
                                                                       usernameVariable: 'GIT_USER'
                                                             )
-                                                  ]) {
+                                                ]) {
                                                       script {
                                                           def settingsXml = """
                                                               <settings>
@@ -61,27 +60,23 @@ pipeline{
                                                               </settings>
                                                             """
                                                           writeFile file: 'settings.xml', text: settingsXml.trim()
-                                                          sh '''
-                                                                mv settings.xml /root/.m2/settings.xml
-                                                                mvn clean test
-                                                              '''
+                                                          sh 'mv settings.xml /root/.m2/settings.xml'
                                                       }
-                                                  }                                        
+                                                }                                        
+                                        }
+                                }
+                      }
+                      stage('Unit test stage'){
+                              steps{
+                                        container('maven'){
+                                            sh 'mvn clean test'                                     
                                         }
                               }
                     }
                     stage('Build jar file'){
                               steps{
                                         container('maven'){
-                                                   withCredentials([
-                                                            usernamePassword(
-                                                                      credentialsId: githubAccount, 
-                                                                      passwordVariable: 'GIT_PASS', 
-                                                                      usernameVariable: 'GIT_USER'
-                                                            )
-                                                  ]) {
-                                                            sh "mvn clean package -DskipTests=true"
-                                                  }
+                                                sh "mvn clean package -DskipTests=true"
                                         }
                               }
                     }
@@ -173,7 +168,7 @@ pipeline{
                                                   )
                                         ]) {
                                                   sh """
-                                                            git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/MeetingTeam/${k8SRepoName}.git --branch ${testBranch}
+                                                            git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/MeetingTeam/${k8SRepoName}.git --branch ${mainBranch}
                                                             cd ${helmPath}
                                                             sed -i 's|  tag: .*|  tag: "${version}"|' ${helmValueFile}
 
@@ -181,7 +176,7 @@ pipeline{
                                                             git config --global user.name "Jenkins"
                                                             git add .
                                                             git commit -m "feat: update application image of helm chart '${appRepoName}' to version ${version}"
-                                                            git push origin ${testBranch}
+                                                            git push origin ${mainBranch}
                                                   """		
 				                              }				
                               }
