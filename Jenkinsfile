@@ -30,10 +30,7 @@ pipeline{
           }
           
           environment {
-                    DOCKER_REGISTRY = 'registry-1.docker.io'       
-
-                    GIT_PREVIOUS_COMMIT = sh(script: 'git rev-parse HEAD~1', returnStdout: true).trim()
-                    GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()    
+                    DOCKER_REGISTRY = 'registry-1.docker.io'         
           }
           
           stages{
@@ -140,7 +137,9 @@ pipeline{
                               when{ branch mainBranch }
                               steps {
                                         script {
-                                                  def changes = sh(script: "git diff --name-only ${GIT_PREVIOUS_COMMIT} ${GIT_COMMIT} -- ${migrationPath}", 
+                                                  def prevGitCommit = sh(script: 'git rev-parse HEAD~1', returnStdout: true).trim()
+                                                  def currGitCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim() 
+                                                  def changes = sh(script: "git diff --name-only ${prevGitCommit} ${currGitCommit} -- ${migrationPath}", 
                                                                                           returnStdout: true).trim()
                                                   echo "changes: ${changes}"
                                                   if (changes){
@@ -170,16 +169,35 @@ pipeline{
                                                   sh """
                                                             git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/MeetingTeam/${k8SRepoName}.git --branch ${mainBranch}
                                                             cd ${helmPath}
-                                                            sed -i 's|  tag: .*|  tag: "${version}"|' ${helmValueFile}
+                                                            sed -i 's|^  tag: ".*"|  tag: "${version}"|' ${helmValueFile}
+                                                            if [ "${updateFlywayImage}" == "true" ]; then
+                                                                  sed -i '/job:/,/tag:/s|^    tag: ".*"|    tag: "${version}"|' ${helmValueFile}
+                                                            fi
 
                                                             git config --global user.email "jenkins@gmail.com"
                                                             git config --global user.name "Jenkins"
                                                             git add .
                                                             git commit -m "feat: update application image of helm chart '${appRepoName}' to version ${version}"
-                                                            git push origin ${mainBranch}
-                                                  """		
+                                                            git push origin ${mainBranch}                                                    
+                                                  """
+				                                  }
 				                              }				
                               }
                     }
           }
+          post {
+            failure {
+                script {
+                  try{
+                      emailext(
+                            subject: "Build Failed: ${currentBuild.fullDisplayName}",
+                            body: "The build has failed. Please check the logs for more information.",
+                            to: '$DEFAULT_RECIPIENTS'
+                      )
+                  } catch (Exception e) {
+                        echo "SMTP email configuration is not found or failed: ${e.getMessage()}. Skipping email notification."
+                  }
+                }
+            }
+          } 
 }
