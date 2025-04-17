@@ -16,6 +16,7 @@ def kanikoAccount = 'kaniko'
 def imageVersion = "${appVersion}-${BUILD_NUMBER}"
 
 def migrationPath = 'src/main/resources/migrations'
+def updateFlywayImage = false
 
 def sonarCloudOrganization = 'meetingteam'
 
