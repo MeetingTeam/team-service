@@ -31,7 +31,7 @@ pipeline{
           
           environment {
                     DOCKER_REGISTRY = 'registry-1.docker.io'
-                    DOCKER_IMAGE_NAME = 'hungtran679/mt_chat-service'
+                    DOCKER_IMAGE_NAME = 'hungtran679/mt_team-service'
                     DOCKER_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${imageVersion}"
                     
                    DOCKER_FLYWAY_IMAGE_NAME = 'hungtran679/mt_flyway-team-service'
