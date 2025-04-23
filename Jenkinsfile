@@ -7,18 +7,15 @@ def appVersion = "1.0"
 
 def k8SRepoName = 'k8s-repo'
 def helmPath = "${k8SRepoName}/application/${appRepoName}"
-def helmValueFile = "values.test.yaml"
+def helmValueFile = "values.dev.yaml"
 
-def dockerhubAccount = 'dockerhub'
 def githubAccount = 'github'
 def kanikoAccount = 'kaniko'
 
-def imageVersion = "${appVersion}-${BUILD_NUMBER}"
-
 def migrationPath = 'src/main/resources/migrations'
-def updateFlywayImage = false
+def migrationChanges = ''
 
-def sonarCloudOrganization = 'meetingteam'
+def sonarOrg = 'meetingteam'
 
 def trivyReportFile = 'trivy_report.html'
 
@@ -31,11 +28,13 @@ pipeline{
           
           environment {
                     DOCKER_REGISTRY = 'registry-1.docker.io'
+                    IMAGE_VERSION = "${appVersion}-${GIT_COMMIT.take(7)}-${BUILD_NUMBER}"
+                    
                     DOCKER_IMAGE_NAME = 'hungtran679/mt_team-service'
-                    DOCKER_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${imageVersion}"
+                    DOCKER_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${IMAGE_VERSION}"
                     
                    DOCKER_FLYWAY_IMAGE_NAME = 'hungtran679/mt_flyway-team-service'
-                   DOCKER_FLYWAY_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_FLYWAY_IMAGE_NAME}:${imageVersion}"      
+                   DOCKER_FLYWAY_IMAGE = "${DOCKER_REGISTRY}/${DOCKER_FLYWAY_IMAGE_NAME}:${IMAGE_VERSION}"      
           }
           
           stages{
@@ -68,6 +67,13 @@ pipeline{
                                         }
                                 }
                       }
+                      stage('Compile code stage'){
+                          steps{
+                              container('maven'){
+                                  sh 'mvn clean compile'
+                              }
+                          }
+                      }
                       stage('Unit test stage'){
                               steps{
                                         container('maven'){
@@ -75,18 +81,11 @@ pipeline{
                                         }
                               }
                     }
-                    stage('Build jar file'){
-                              steps{
-                                        container('maven'){
-                                                sh "mvn clean package -DskipTests=true"
-                                        }
-                              }
-                    }
                     stage('Code analysis'){
                               steps{
                                         container('maven'){
-                                                  withSonarQubeEnv('SonarCloud') {
-                                                            sh "mvn sonar:sonar -Dsonar.organization=${sonarCloudOrganization}"
+                                                  withSonarQubeEnv('SonarServer') {
+                                                            sh "mvn sonar:sonar -Dsonar.organization=${sonarOrg}"
                                                   }
                                         }
                               }
@@ -95,6 +94,13 @@ pipeline{
                               steps {
                                         timeout(time: 5, unit: 'MINUTES') {
                                                   waitForQualityGate(abortPipeline: true)
+                                        }
+                              }
+                    }
+                    stage('Build jar file'){
+                              steps{
+                                        container('maven'){
+                                                sh "mvn clean package -DskipTests=true"
                                         }
                               }
                     }
@@ -141,17 +147,17 @@ pipeline{
                                         }
                               }
                     }
-                      stage('Check for changes in migration folder') {
+                    stage('Check for changes in migration folder') {
                               when{ branch mainBranch }
                               steps {
                                         script {
-                                                  def prevGitCommit = sh(script: 'git rev-parse HEAD~1', returnStdout: true).trim()
-                                                  def currGitCommit = sh(script: 'git rev-parse HEAD', returnStdout: true).trim() 
-                                                  def changes = sh(script: "git diff --name-only ${prevGitCommit} ${currGitCommit} -- ${migrationPath}", 
+                                                  if(env.GIT_PREVIOUS_SUCCESSFUL_COMMIT){
+                                                    migrationChanges = sh(script: "git diff --name-only ${GIT_PREVIOUS_SUCCESSFUL_COMMIT} ${GIT_COMMIT} -- ${migrationPath}", 
                                                                                           returnStdout: true).trim()
-                                                  echo "changes: ${changes}"
-                                                  if (changes){
-                                                            echo 'INFO: there is change in migration scripts. Start building flyway image'
+                                                  }
+                                                  if (migrationChanges){
+                                                            echo "There is change in migration scripts compared to previous success build: ${GIT_PREVIOUS_SUCCESSFUL_COMMIT}"
+                                                            echo 'Start build flyway image'
                                                             container('kaniko'){
                                                                 sh """
                                                                       /kaniko/executor \
@@ -174,22 +180,23 @@ pipeline{
                                                             usernameVariable: 'GIT_USER'
                                                   )
                                         ]) {
+                                              script {
+                                                  def changeJobImageTagCmd = (migrationChanges)?"sed -i '/jobImageTag:/s/:.*/: ${IMAGE_VERSION}/' ${helmValueFile}":''
                                                   sh """
-                                                            git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/MeetingTeam/${k8SRepoName}.git --branch ${mainBranch}
-                                                            cd ${helmPath}
-                                                            sed -i 's|^  tag: ".*"|  tag: "${imageVersion}"|' ${helmValueFile}
-                                                            if [ "${updateFlywayImage}" == "true" ]; then
-                                                                  sed -i '/job:/,/tag:/s|^    tag: ".*"|    tag: "${imageVersion}"|' ${helmValueFile}
-                                                            fi
+                                                          git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/MeetingTeam/${k8SRepoName}.git --branch ${mainBranch}
+                                                          cd ${helmPath}
+                                                          sed -i "/imageTag:/s/:.*/: ${IMAGE_VERSION}/" ${helmValueFile}
+                                                          ${changeJobImageTagCmd}
 
-                                                            git config --global user.email "jenkins@gmail.com"
-                                                            git config --global user.name "Jenkins"
-                                                            git add .
-                                                            git commit -m "feat: update application image of helm chart '${appRepoName}' to version ${imageVersion}"
-                                                            git push origin ${mainBranch}                                                    
+                                                          git config --global user.email "jenkins@gmail.com"
+                                                          git config --global user.name "Jenkins"
+                                                          git add .
+                                                          git commit -m "feat: update application image of helm chart '${appRepoName}' to version ${IMAGE_VERSION}"
+                                                          git push origin ${mainBranch}                                                    
                                                   """
-				                                    }
-				                              }				
+                                              }                                                
+				                                }
+				                          }				
                             }
               }
           post {
