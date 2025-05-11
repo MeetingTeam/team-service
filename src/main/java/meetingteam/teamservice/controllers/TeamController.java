@@ -8,12 +8,14 @@ import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.Team.UpdateTeamDto;
 import meetingteam.teamservice.services.TeamService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/team")
+@PreAuthorize("isAuthenticated()")
 @RequiredArgsConstructor
 public class TeamController {
     private final TeamService teamService;

@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.servers.Server;
 
 @OpenAPIDefinition(
         info = @Info(
-                title = "User Service API",
-                description = "User API documentation",
+                title = "Team Service API",
+                description = "Team API documentation",
                 version = "1.0"
         ),
         security = @SecurityRequirement(name = "oauth2_bearer"),
