@@ -7,12 +7,14 @@ import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
 import meetingteam.teamservice.services.TeamMemberService;
 import org.hibernate.validator.constraints.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/team-member")
+@PreAuthorize("isAuthenticated()")
 @RequiredArgsConstructor
 public class TeamMemberController {
     private final TeamMemberService teamMemberService;
@@ -48,6 +50,7 @@ public class TeamMemberController {
     }
 
     @GetMapping("/private/is-member-of-team")
+    @PreAuthorize("isAnonymous()")
     public ResponseEntity<Boolean> isMemberOfTeam(
             @RequestParam("userId") String userId,
             @RequestParam(value="teamId", required = false) String teamId,
