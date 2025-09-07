@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import meetingteam.commonlibrary.dtos.SocketDto;
 import meetingteam.commonlibrary.exceptions.InternalServerException;
+import meetingteam.teamservice.dtos.Notification.MailDto;
 import meetingteam.teamservice.services.RabbitmqService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,8 @@ public class RabbitmqServiceImpl implements RabbitmqService {
 
     @Value("${rabbitmq.exchange-name}")
     private String exchangeName;
+    @Value("${rabbitmq.notification-routing-key}")
+    private String notificationRoutingKey;
 
     @Override
     public void sendToUser(String userId, String topic, Object payload) {
@@ -46,6 +49,16 @@ public class RabbitmqServiceImpl implements RabbitmqService {
         }
         catch(Exception e){
             log.error(e.getMessage());
+        }
+    }
+
+    public void sendEmailNotification(MailDto mailDto){
+        try{
+            String jsonData = objectMapper.writeValueAsString(mailDto);
+            rabbitTemplate.convertAndSend(exchangeName, notificationRoutingKey, jsonData);
+        }
+        catch(Exception e){
+            throw new InternalServerException("Unable to send message");
         }
     }
 }

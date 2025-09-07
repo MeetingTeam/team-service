@@ -17,6 +17,7 @@ import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
 import meetingteam.teamservice.repositories.TeamRequestRepository;
+import meetingteam.teamservice.services.NotificationService;
 import meetingteam.teamservice.services.TeamRequestService;
 import meetingteam.teamservice.services.UserService;
 import meetingteam.teamservice.services.WebsocketService;
@@ -38,6 +39,7 @@ public class TeamRequestServiceImpl implements TeamRequestService {
     private final TeamRepository teamRepo;
     private final UserService userService;
     private final WebsocketService websocketService;
+    private final NotificationService notificationService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -57,6 +59,9 @@ public class TeamRequestServiceImpl implements TeamRequestService {
 
             var teamDto= modelMapper.map(team, ResTeamDto.class);
             websocketService.addOrUpdateTeamToUser(userId, teamDto);
+
+            notificationService.notifyJoinedTeam(team, List.of(tm));
+            
             return "You has been added to team '"+team.getTeamName()+"'";
         }
         else if(!teamRequestRepo.existsBySenderIdAndTeam(userId,team)) {
@@ -97,6 +102,8 @@ public class TeamRequestServiceImpl implements TeamRequestService {
 
             var memberDtos= userService.fetchUsersData(List.of(savedMember.getUserId()), List.of(savedMember));
             websocketService.addTeamMembers(team.getId(), memberDtos);
+
+            notificationService.notifyJoinedTeam(team, List.of(savedMember));
         }
     }
 

@@ -9,5 +9,6 @@ public interface TeamMemberService {
     void leaveTeam(String teamId);
     void kickMember(String teamId, String memberId);
     List<ResTeamMemberDto> getMembersOfTeam(String teamId);
+    List<String> getMemberUserIdsOfTeam(String teamId);
     boolean isMemberOfTeam(String userId, String teamId, String channelId);
 }

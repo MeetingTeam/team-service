@@ -13,6 +13,7 @@ import meetingteam.teamservice.models.TeamMember;
 import meetingteam.teamservice.models.enums.TeamRole;
 import meetingteam.teamservice.repositories.TeamMemberRepository;
 import meetingteam.teamservice.repositories.TeamRepository;
+import meetingteam.teamservice.services.NotificationService;
 import meetingteam.teamservice.services.TeamMemberService;
 import meetingteam.teamservice.services.UserService;
 import meetingteam.teamservice.services.WebsocketService;
@@ -33,6 +34,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
     private final TeamRepository teamRepo;
     private final UserService userService;
     private final WebsocketService websocketService;
+    private final NotificationService notificationService;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -54,11 +56,13 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         var memberDtos= userService.fetchUsersData(friendIds, savedMembers);
         websocketService.addTeamMembers(teamId, memberDtos);
 
-        Team team=teamRepo.getTeamWithChannels(teamRepo.getById(teamId));
+        Team team = teamRepo.getTeamWithChannels(teamRepo.getById(teamId));
         var teamDto= modelMapper.map(team, ResTeamDto.class);
         for(String friendId: friendIds){
             websocketService.addOrUpdateTeamToUser(friendId, teamDto);
         }
+
+        notificationService.notifyJoinedTeam(team, savedMembers);
     }
 
     @Transactional
@@ -110,6 +114,14 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
         var userIds=members.stream().map(member->member.getUserId()).toList();
         return userService.fetchUsersData(userIds, members);
+    }
+
+    public List<String> getMemberUserIdsOfTeam(String teamId) {
+        var members= teamMemberRepo.findByTeam(teamRepo.getById(teamId));
+        
+        return members.stream()
+        .map(member -> member.getUserId())
+        .toList();
     }
 
     public boolean isMemberOfTeam(String userId, String teamId, String channelId){

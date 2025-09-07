@@ -49,13 +49,22 @@ public class TeamMemberController {
         return ResponseEntity.ok(teamMemberService.getMembersOfTeam(teamId));
     }
 
+    @GetMapping("/private/{teamId}/member-user-ids")
+    @PreAuthorize("isAnonymous()")
+    public ResponseEntity<List<String>> getMemberIdsOfTeam(
+            @PathVariable("teamId") String teamId
+    ){
+        return ResponseEntity.ok(teamMemberService
+                .getMemberUserIdsOfTeam(teamId));
+    }
+
     @GetMapping("/private/is-member-of-team")
     @PreAuthorize("isAnonymous()")
     public ResponseEntity<Boolean> isMemberOfTeam(
             @RequestParam("userId") String userId,
             @RequestParam(value="teamId", required = false) String teamId,
             @RequestParam(value="channelId", required = false) String channelId
-            ){
+    ){
         return ResponseEntity.ok(teamMemberService.isMemberOfTeam(userId,teamId,channelId));
     }
 }

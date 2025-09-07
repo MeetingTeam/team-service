@@ -31,15 +31,12 @@ public class UserServiceImpl implements UserService{
     @Retry(name="restApi")
     @CircuitBreaker(name="restCircuitBreaker")
     public List<ResUserDto> getUsersByIds(List<String> userIds) {
-        String jwtToken= AuthUtil.getJwtToken();
-
         URI uri= UriComponentsBuilder.fromHttpUrl(serviceUrlConfig.userServiceUrl())
                 .path("/user/private/by-ids")
                 .build().toUri();
 
         return restClient.post()
                 .uri(uri)
-                .headers(h->h.setBearerAuth(jwtToken))
                 .body(userIds)
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
