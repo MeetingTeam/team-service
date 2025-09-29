@@ -17,7 +17,7 @@ RUN chown -R team_service:team_service /app
 USER team_service
 
 # Run app
-ENTRYPOINT ["sh","-c","java -javaagent:opentelemetry-javaagent.jar -jar -Dspring.config.location=${CONFIG_PATH} team-service.war"]
+ENTRYPOINT ["sh","-c","java -javaagent:opentelemetry-javaagent.jar -Dspring.config.location=${CONFIG_PATH} -jar team-service.war"]
 
 # Expose port 8081
 EXPOSE 8081

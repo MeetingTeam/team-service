@@ -3,6 +3,8 @@ package meetingteam.teamservice.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import meetingteam.commonlibrary.dtos.PagedResponseDto;
+import meetingteam.commonlibrary.exceptions.InternalServerException;
+import meetingteam.teamservice.configs.AnomalyConfig;
 import meetingteam.teamservice.dtos.Team.CreateTeamDto;
 import meetingteam.teamservice.dtos.Team.ResTeamDto;
 import meetingteam.teamservice.dtos.Team.UpdateTeamDto;
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TeamController {
     private final TeamService teamService;
+    private final AnomalyConfig anomalyConfig;
 
     @PostMapping
     public ResponseEntity<ResTeamDto> createTeam(
@@ -29,7 +32,10 @@ public class TeamController {
     @PatchMapping
     public ResponseEntity<Void> updateTeam(
             @Valid @RequestBody UpdateTeamDto teamDto){
-        teamService.updateTeam(teamDto);
+        if(anomalyConfig.enableAppError()){
+            throw new InternalServerException("Anomaly test error");
+        }
+        else teamService.updateTeam(teamDto);
         return ResponseEntity.ok().build();
     }
 

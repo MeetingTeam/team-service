@@ -4,6 +4,10 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import meetingteam.commonlibrary.dtos.ErrorDto;
 import meetingteam.commonlibrary.exceptions.BadRequestException;
+import meetingteam.commonlibrary.exceptions.NotFoundException;
+import meetingteam.teamservice.contraints.AnomalyTypes;
+import meetingteam.teamservice.utils.AnomalyUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -15,6 +19,8 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -76,9 +82,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(500).body(errorDto);
     }
 
+    @ExceptionHandler({NoHandlerFoundException.class, NotFoundException.class, NoResourceFoundException.class})
+    public ResponseEntity<ErrorDto> handleNotFoundException(Exception ex){
+        LOGGER.error(ex.getMessage());
+        var errorDto=new ErrorDto(HttpStatus.NOT_FOUND,"API not found", ex.getMessage());
+        return ResponseEntity.status(errorDto.statusCode()).body(errorDto);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDto> handleUnknownException(Exception ex){
         LOGGER.error(ex.getMessage());
+        AnomalyUtil.markAnomalySpan(AnomalyTypes.APP_ERROR);
         var errorDto= new ErrorDto(HttpStatus.INTERNAL_SERVER_ERROR, "Unknown error",ex.getMessage());
         return ResponseEntity.status(500).body(errorDto);
     }

@@ -7,8 +7,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import meetingteam.commonlibrary.dtos.SocketDto;
 import meetingteam.commonlibrary.exceptions.InternalServerException;
+import meetingteam.teamservice.configs.AnomalyConfig;
+import meetingteam.teamservice.contraints.AnomalyTypes;
 import meetingteam.teamservice.dtos.Notification.MailDto;
 import meetingteam.teamservice.services.RabbitmqService;
+import meetingteam.teamservice.utils.AnomalyUtil;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ public class RabbitmqServiceImpl implements RabbitmqService {
     private final ObjectMapper objectMapper=new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private final AnomalyConfig anomalyConfig;
 
     @Value("${rabbitmq.exchange-name}")
     private String exchangeName;
@@ -30,10 +35,22 @@ public class RabbitmqServiceImpl implements RabbitmqService {
     @Override
     public void sendToUser(String userId, String topic, Object payload) {
         try{
-            String dest="/topic/user."+userId;
-            SocketDto socketDto = new SocketDto(dest, topic, payload);
-            String jsonData = objectMapper.writeValueAsString(socketDto);
-            rabbitTemplate.convertAndSend(exchangeName, dest, jsonData);
+            if(anomalyConfig.enableMissSpan()){
+                AnomalyUtil.markAnomalySpan(AnomalyTypes.MISS_SPAN);
+            }
+            else{
+                int loopNum = 1;
+                if(anomalyConfig.enableFanoutCall()){
+                    loopNum = 10;
+                    AnomalyUtil.markAnomalySpan(AnomalyTypes.FAN_OUT_CALL);
+                }
+                for(int i=0; i<loopNum; i++){
+                    String dest="/topic/user."+userId;
+                    SocketDto socketDto = new SocketDto(dest, topic, payload);
+                    String jsonData = objectMapper.writeValueAsString(socketDto);
+                    rabbitTemplate.convertAndSend(exchangeName,dest, jsonData);
+                }
+            }
         }
         catch(Exception e){
             log.error(e.getMessage());
@@ -42,10 +59,22 @@ public class RabbitmqServiceImpl implements RabbitmqService {
 
     public void sendToTeam(String teamId, String topic, Object payload){
         try{
-            String dest="/topic/team."+teamId;
-            SocketDto socketDto = new SocketDto(dest, topic, payload);
-            String jsonData = objectMapper.writeValueAsString(socketDto);
-            rabbitTemplate.convertAndSend(exchangeName, dest, jsonData);
+            if(anomalyConfig.enableMissSpan()){
+                AnomalyUtil.markAnomalySpan(AnomalyTypes.MISS_SPAN);
+            }
+            else{
+                int loopNum = 1;
+                if(anomalyConfig.enableFanoutCall()){
+                    loopNum = 10;
+                    AnomalyUtil.markAnomalySpan(AnomalyTypes.FAN_OUT_CALL);
+                }
+                for(int i=0; i<loopNum; i++){
+                    String dest= "/topic/team."+teamId;
+                    SocketDto socketDto = new SocketDto(dest,topic, payload);
+                    String jsonData = objectMapper.writeValueAsString(socketDto);
+                    rabbitTemplate.convertAndSend(exchangeName, dest, jsonData);
+                }
+            }
         }
         catch(Exception e){
             log.error(e.getMessage());
@@ -54,8 +83,20 @@ public class RabbitmqServiceImpl implements RabbitmqService {
 
     public void sendEmailNotification(MailDto mailDto){
         try{
-            String jsonData = objectMapper.writeValueAsString(mailDto);
-            rabbitTemplate.convertAndSend(exchangeName, notificationRoutingKey, jsonData);
+            if(anomalyConfig.enableMissSpan()){
+                AnomalyUtil.markAnomalySpan(AnomalyTypes.MISS_SPAN);
+            }
+            else{
+                int loopNum = 1;
+                if(anomalyConfig.enableFanoutCall()){
+                    loopNum = 10;
+                    AnomalyUtil.markAnomalySpan(AnomalyTypes.FAN_OUT_CALL);
+                }
+                for(int i=0; i<loopNum; i++){
+                    String jsonData = objectMapper.writeValueAsString(mailDto);
+                    rabbitTemplate.convertAndSend(exchangeName, notificationRoutingKey, jsonData);
+                }
+            }
         }
         catch(Exception e){
             throw new InternalServerException("Unable to send message");

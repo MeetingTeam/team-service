@@ -2,6 +2,8 @@ package meetingteam.teamservice.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import meetingteam.commonlibrary.exceptions.InternalServerException;
+import meetingteam.teamservice.configs.AnomalyConfig;
 import meetingteam.teamservice.dtos.TeamMember.AddFriendsDto;
 import meetingteam.teamservice.dtos.TeamMember.ResTeamMemberDto;
 import meetingteam.teamservice.services.TeamMemberService;
@@ -18,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TeamMemberController {
     private final TeamMemberService teamMemberService;
+    private final AnomalyConfig anomalyConfig;
 
     @PostMapping("/add-friends")
     public ResponseEntity<Void> addFriendsToTeam(
@@ -46,7 +49,10 @@ public class TeamMemberController {
     public ResponseEntity<List<ResTeamMemberDto>> getMembersOfTeam(
             @PathVariable("teamId") String teamId
     ){
-        return ResponseEntity.ok(teamMemberService.getMembersOfTeam(teamId));
+        if(anomalyConfig.enableAppError()){
+            throw new InternalServerException("Anomaly test error");
+        }
+        else return ResponseEntity.ok(teamMemberService.getMembersOfTeam(teamId));
     }
 
     @GetMapping("/private/{teamId}/member-user-ids")
